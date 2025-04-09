@@ -1,161 +1,122 @@
-#include<iostream>
-#include<vector>
-using namespace std;
+#include <iostream>
+#include <cstring>
 
-int a, b; // 点数，边数
-int *result; 
-int **matrix; // 邻接矩阵
-int *rdegree;
-int *visit;
-int count = 1;
-bool has_cycle = false;
-bool *in_stack;
+const int MAX_N = 5005;
+const int MAX_M = 5005;
 
-void topo_sort(int n)
-{
-    if(has_cycle) return; // 如果已经发现有环，直接返回
+struct Edge {
+    int to;
+    Edge* next;
+};
 
-    if(rdegree[n]==0) // 入度为0
-    {
-        result[count++]=n;
-        visit[n]=1;
-        for(int i=1;i<=a;i++)
-        {
-            if(matrix[n][i]== 1)
-            {
-                rdegree[i]--;
-            }
-        }
-        return;
+Edge edges[MAX_M];
+Edge* adj[MAX_N];
+int edge_count = 0;
+
+int in_degree[MAX_N];
+int heap[MAX_N];
+int heap_size = 0;
+
+void init_graph(int N) {
+    edge_count = 0;
+    for (int i = 1; i <= N; ++i) {
+        adj[i] = nullptr;
+        in_degree[i] = 0;
     }
-
-
-    in_stack[n] = true; // 标记节点n在递归栈中
-    
-    //处理找的到指向该点的所有点，如果入度为0就直接加入结果，否则递归调用这个函数处理那个父节点
-    //如果无法完成拓扑排序，则输出Impossible!
-    for(int i=1; i<=a; i++)
-    {
-        if(matrix[i][n] == 1 && visit[i] == 0)
-        {
-            if(in_stack[i]) // 如果该前驱节点在递归栈中，说明有环
-            {
-                has_cycle = true;
-                return;
-            }
-            topo_sort(i);
-            if(has_cycle) return;
-        }
-    }   
-    in_stack[n] = false;
-    if(rdegree[n] == 0 && visit[n] == 0)
-    {
-        result[count++] = n;
-        visit[n] = 1;
-        for(int i=1; i<=a; i++)
-        {
-            if(matrix[n][i] == 1)
-            {
-                rdegree[i]--;
-            }
-        }
-    }
-
-    
 }
 
-int main()
-{
-    int n; // 组数
-    cin >> n;
-    for(int i = 1; i <= n; i++)
-    {
-        cin >> a >> b;
-        rdegree = new int[a+1](); // 存每个节点的入度
-        result = new int[a+1];
-        visit = new int[a+1];
-        has_cycle = false; 
-        matrix = new int*[a+1];
-        in_stack = new bool[a+1]();
-        for(int j=1; j<=a; j++) {
-            in_stack[j] = false;
+void add_edge(int x, int y) {
+    edges[edge_count].to = y;
+    edges[edge_count].next = adj[x];
+    adj[x] = &edges[edge_count];
+    edge_count++;
+    in_degree[y]++;
+}
+
+void heap_push(int x) {
+    int i = heap_size++;
+    heap[i] = x;
+    while (i > 0) {
+        int parent = (i - 1) / 2;
+        if (heap[parent] >= heap[i]) break;
+        std::swap(heap[parent], heap[i]);
+        i = parent;
+    }
+}
+
+void heapify(int i) {
+    int left = 2 * i + 1;
+    int right = 2 * i + 2;
+    int largest = i;
+    if (left < heap_size && heap[left] > heap[largest]) {
+        largest = left;
+    }
+    if (right < heap_size && heap[right] > heap[largest]) {
+        largest = right;
+    }
+    if (largest != i) {
+        std::swap(heap[i], heap[largest]);
+        heapify(largest);
+    }
+}
+
+int heap_pop() {
+    int max_val = heap[0];
+    heap[0] = heap[--heap_size];
+    heapify(0);
+    return max_val;
+}
+
+void topological_sort(int N, int* result) {
+    heap_size = 0;
+    for (int i = 1; i <= N; ++i) {
+        if (in_degree[i] == 0) {
+            heap_push(i);
         }
-        for(int j = 1; j <= a; j++)
-        {
-            matrix[j] = new int[a+1]();
+    }
+
+    int idx = 0;
+    while (heap_size > 0) {
+        int u = heap_pop();
+        result[idx++] = u;
+        for (Edge* e = adj[u]; e != nullptr; e = e->next) {
+            int v = e->to;
+            in_degree[v]--;
+            if (in_degree[v] == 0) {
+                heap_push(v);
+            }
         }
-        for(int j=1;j<=a;j++)
-        {
-            visit[j]=0;
-        }
-        
-        // 初始化邻接矩阵
-        for(int j = 1; j <= a; j++)
-            for(int k = 1; k <= a; k++)
-                matrix[j][k] = 0;
-        
-        // 读取边并更新入度
-        for(int j = 1; j <= b; j++)
-        {
+    }
+
+    if (idx != N) {
+        result[0] = -1;
+    }
+}
+
+int main() {
+    int D;
+    std::cin >> D;
+    while (D--) {
+        int N, M;
+        std::cin >> N >> M;
+        init_graph(N);
+        for (int i = 0; i < M; ++i) {
             int x, y;
-            cin >> x >> y; // x->y
-            matrix[x][y] = 1;
-            rdegree[y]++; // y的入度加1
-        }
-        
-        int j =1;
-        topo_sort(j); // 无解的时候输出Impossible!
-        j++;
-        while(j<=a&& !has_cycle)
-        {
-            if(visit[j])
-            {
-                j++;
-                continue;
-            }
-            else
-            {
-                topo_sort(j);
-                j++;
-            }
+            std::cin >> x >> y;
+            add_edge(y, x); // 构建逆图
         }
 
-        bool all_visited = true;
-        for(int j=1; j<=a; j++)
-        {
-            if(visit[j] == 0)
-            {
-                all_visited = false;
-                break;
+        int result[MAX_N];
+        topological_sort(N, result);
+
+        if (result[0] == -1) {
+            std::cout << "Impossible!" << std::endl;
+        }
+        else {
+            for (int i = N - 1; i >= 0; --i) {
+                std::cout << result[i] << (i == 0 ? "\n" : " ");
             }
         }
-
-        if(has_cycle || !all_visited)
-        {
-            cout << "Impossible!" << endl;
-        }
-        else
-        {
-            for(int j=1; j<count; j++)
-            {
-                cout << result[j];
-                if(j < count-1) cout << " ";
-            }
-            cout << endl;
-        }
-        
-        // 重置计数器
-        count = 1;
-
-        // 释放内存
-        delete[] rdegree;
-        delete[] result;
-        delete[] visit;
-        delete[] in_stack;
-        for(int j = 1; j <= a; j++) {
-            delete[] matrix[j];
-        }
-        delete[] matrix;
     }
     return 0;
 }
