@@ -18,11 +18,14 @@ bool compareEdges(const Edge &a, const Edge &b) {
 class UnionFind {
 private:
     vector<int> parent;
+    //该点为根的集合的大小(高度)
     vector<int> rank;
 public:
     UnionFind(int size) {
         parent.resize(size + 1);
+        
         rank.resize(size + 1, 1);
+        //初始化所有根节点的父亲为自己
         for (int i = 0; i <= size; ++i) {
             parent[i] = i;
         }
@@ -30,6 +33,7 @@ public:
 
     //找到u的祖先
     int find(int u) {
+        //父亲不是自己的节点就是中间节点,需要递归寻找祖先根
         if (parent[u] != u) {
             parent[u] = find(parent[u]);
         }
@@ -45,6 +49,7 @@ public:
         if (uRoot == vRoot) {
             return false;
         }
+        //小的集合合并到大的里
         if (rank[uRoot] > rank[vRoot]) {
             parent[vRoot] = uRoot;
             rank[uRoot] += rank[vRoot];
@@ -64,9 +69,11 @@ int main() {
     vector<Edge> edges(M);
     for (int i = 0; i < M; ++i) {
         cin >> edges[i].x >> edges[i].y >> edges[i].c;
+        //id从1开始
         edges[i].id = i + 1;
     }
 
+    //从小到大升序排,优先边权值,再看id(字典序)
     sort(edges.begin(), edges.end(), compareEdges);
 
     UnionFind uf(N);
